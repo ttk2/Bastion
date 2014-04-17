@@ -172,7 +172,7 @@ public class BastionBlockManager
 				getReinforcement(event.getLocation());
 		
 		if(saplingReinforcement instanceof PlayerReinforcement)
-			playerName=saplingReinforcement.getOwnerName();
+			playerName=saplingReinforcement.getOwner().getName();
 		
 		if(player!=null&&playerName==null)
 			playerName=player.getName();
@@ -283,7 +283,7 @@ public class BastionBlockManager
 		}
 
 		for(BastionBlock bastion:bastions){
-			blocking=getBlockingBastion(b,bastion.getReinforcement().getOwnerName());
+			blocking=getBlockingBastion(b,bastion.getReinforcement().getOwner().getName());
 			if(blocking==null)
 				return null;
 		}

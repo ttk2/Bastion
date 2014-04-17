@@ -4,9 +4,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -26,12 +29,13 @@ import isaac.bastion.storage.BastionBlockSet;
 public class EnderPearlManager {
 	public static final int MAX_TELEPORT=800;
 	private BastionBlockSet bastions;
-	private Map<EnderPearl,Integer> endTimes;
+	private Map<World, PriorityQueue<PearlBastionCollision>> endingPearls;
 	private Map<EnderPearl,BastionBlock> blocks;
 	public EnderPearlManager(){
 		bastions=Bastion.getBastionManager().bastions;
-
-		endTimes=new HashMap<EnderPearl,Integer>();
+		
+		endingPearls = new HashMap<World, PriorityQueue<PearlBastionCollision>>();
+		
 		blocks=new HashMap<EnderPearl,BastionBlock>();
 	}
 	public void handlePearlLaunched(EnderPearl pearl){
@@ -95,29 +99,28 @@ public class EnderPearlManager {
 		}
 
 
+		PearlFlight flight = new PearlFlight(pearl);
 		BastionBlock firstCollision=null;
-		double collidesBy=-1;
 		for(BastionBlock bastion : couldCollide){
-			double currentCollidesBy=collidesBy(bastion, start.clone(), end.clone(), speed, gravity, horizontalSpeed);
-			if(currentCollidesBy!=-1&&currentCollidesBy<collidesBy){
-				collidesBy=currentCollidesBy;
-				firstCollision=bastion;
+			double collidesBy=collidesBy(bastion, start.clone(), end.clone(), speed, gravity, horizontalSpeed);
+			if(collidesBy!=-1){
+				addPossibleCollision(flight, collidesBy, bastion);
 			}
-			if(collidesBy==-1&&currentCollidesBy!=-1){
-				collidesBy=currentCollidesBy;
-				firstCollision=bastion;
-			}
-		}
-		if(collidesBy!=-1){
-			//Bastion.getPlugin().getLogger().info("adding collision");
-			endTimes.put(pearl, (int) collidesBy);
-			blocks.put(pearl, firstCollision);
-			return;
 		}
 		//Bastion.getPlugin().getLogger().info("complicated test failed");
 
 
 	}
+	
+	private void addPossibleCollision(PearlFlight flight, double time, BastionBlock bastion) {
+		World world = flight.getPearl().getWorld();
+		if (!endingPearls.containsKey(world)) {
+			endingPearls.put(world, new PriorityQueue<PearlBastionCollision>());
+		}
+		
+		endingPearls.get(world).add(new PearlBastionCollision(time, flight, bastion));
+	}
+	
 	private Set<BastionBlock> simpleCollide(Set<BastionBlock> possible,Location start,Location end){
 		Set<BastionBlock> couldCollide=new TreeSet<BastionBlock>();
 		for(BastionBlock bastion : possible){
@@ -344,17 +347,23 @@ public class EnderPearlManager {
 		}
 	}
 	private void worldTick(World world){
-		Collection<EnderPearl> flying=world.getEntitiesByClass(EnderPearl.class);
-		for(EnderPearl pearl : flying){
-			pearlTick(pearl);
+		PriorityQueue<PearlBastionCollision> landingQueue = endingPearls.get(world);
+		double worldTime = world.getFullTime();
+		if (landingQueue != null) {
+			PearlBastionCollision landing = landingQueue.peek();
+			while (landing.getLandingTime() <= worldTime) {
+				if (!landing.getFlight().isCancelled()) {
+					handlePossibleCollision(landing);
+				}
+				landingQueue.poll();
+				landing = landingQueue.peek();
+			}
 		}
 	}
-	private void pearlTick(EnderPearl pearl){
-		Integer endTime=endTimes.get(pearl);
-		if(endTime==null)
-			return;
-
-
+	private void handlePossibleCollision(PearlBastionCollision collision){
+		double endTime = collision.getLandingTime();
+		EnderPearl pearl = collision.getPearl();
+		
 		if(pearl.getWorld().getFullTime()>endTime){
 			String playerName=null;
 			Player player=null;
@@ -367,12 +376,66 @@ public class EnderPearlManager {
 			if(bastion!=null)
 				if(bastion.enderPearlBlocked(pearl.getLocation(), playerName)){
 					bastion.handleTeleport(pearl.getLocation(), player);
-					pearl.remove();
-					blocks.remove(pearl);
-					endTimes.remove(pearl);
+					collision.getFlight().cancel();
 				}
 		}
 	}
+	
+	private class PearlFlight {
+		private EnderPearl pearl;
+		private boolean isCancelled;
+		public PearlFlight(EnderPearl pearl) {
+			super();
+			this.pearl = pearl;
+			this.isCancelled = false;
+		}
+		public boolean isCancelled() {
+			return isCancelled;
+		}
+		
+		public void cancel() {
+			if (!isCancelled) {
+				isCancelled = true;
+				pearl.remove();
+			}
+		}
+		
+		public EnderPearl getPearl() {
+			return pearl;
+		}
+	}
 
+	private class PearlBastionCollision implements Comparable<PearlBastionCollision> {
+		private double landingTime;
+		private PearlFlight flight;
+		private BastionBlock bastion;
 
+		public PearlBastionCollision(double landingTime, PearlFlight flight, BastionBlock bastion) {
+			super();
+			this.landingTime = landingTime;
+			this.flight = flight;
+			this.bastion = bastion;
+		}
+		
+		@Override
+		public int compareTo(PearlBastionCollision o) {
+			return (int) Math.signum(o.getLandingTime() - landingTime);
+		}
+
+		public double getLandingTime() {
+			return landingTime;
+		}
+		
+		public PearlFlight getFlight() {
+			return flight;
+		}
+
+		public EnderPearl getPearl() {
+			return flight.getPearl();
+		}
+		
+		public BastionBlock getBastion() {
+			return bastion;
+		}
+	}
 }
