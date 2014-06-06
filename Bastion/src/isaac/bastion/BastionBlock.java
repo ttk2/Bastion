@@ -34,14 +34,14 @@ public class BastionBlock implements QTBox, Comparable<BastionBlock>
 	private int strength; //current durability
 	private long placed; //time when the bastion block was created
 	
-	private class BastionPlaces{	
-		public String player;
-		public long lastPlace;
+	private class BastionPlaces{ //class that saves player and last time they placed a block	
+		public String player; //the player this instance is in reference to
+		public long lastPlace; //last time said player placed a block
 	}
 	
-	private ArrayList<BastionPlaces> myPlaces = new ArrayList<BastionPlaces>();
-	private BastionPlaces currentPlace;
-	private long setupPlace; //time when the last erode took place
+	private ArrayList<BastionPlaces> myPlaces = new ArrayList<BastionPlaces>(); //array storing info on players who have placed blocks since initialized
+	private BastionPlaces currentPlace; //variable to be used in determining what instance of array to useBastion
+	private long setupPlace; //time when block is initilaized
 	private boolean loaded=true; //has the object not been modified since it was loaded?
 	private boolean ghost=false; //should the object be deleted
 
