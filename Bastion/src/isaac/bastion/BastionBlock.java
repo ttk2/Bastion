@@ -348,7 +348,7 @@ public class BastionBlock implements QTBox, Comparable<BastionBlock>
 		}
 		if (currentPlace==null||currentPlace.player!=thePlayer){
 			currentPlace=new BastionPlaces(thePlayer,setupTime);
-			myPlaces.add(currentPlace)
+			myPlaces.add(currentPlace);
 		}
 		erode(erosionFromPlace());
 	}
