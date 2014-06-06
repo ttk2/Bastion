@@ -109,7 +109,7 @@ public class BastionBlockManager
 		Location location=added.getLocation();
 		BastionBlock blocking=getBlockingBastion(location,event.getPlayer().getName());
 		if(blocking!=null){
-			blocking.handlePlaced(added, false);
+			blocking.handlePlaced(added, false, event.getPlayer().getName());
 			event.setCancelled(true);
 			return true;
 		}
@@ -191,7 +191,7 @@ public class BastionBlockManager
 		BastionBlock bastion=getBlockingBastion(loc,player);
 		if(bastion!=null){
 			if(shouldHandle){
-				bastion.handlePlaced(loc.getBlock(),true);
+				bastion.handlePlaced(loc.getBlock(),true,player);
 			}
 			if(bastion.shouldCull())
 				bastions.remove(bastion);

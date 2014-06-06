@@ -33,8 +33,15 @@ public class BastionBlock implements QTBox, Comparable<BastionBlock>
 	private double balance=0; //the amount remaining still to be eroded after the whole part has been removed
 	private int strength; //current durability
 	private long placed; //time when the bastion block was created
-
-	private long lastPlace; //time when the last erode took place
+	
+	private class BastionPlaces{	
+		public String player;
+		public long lastPlace;
+	}
+	
+	private ArrayList<BastionPlaces> myPlaces = new ArrayList<BastionPlaces>();
+	private BastionPlaces currentPlace;
+	private long setupPlace; //time when the last erode took place
 	private boolean loaded=true; //has the object not been modified since it was loaded?
 	private boolean ghost=false; //should the object be deleted
 
@@ -102,7 +109,7 @@ public class BastionBlock implements QTBox, Comparable<BastionBlock>
 		}
 
 		balance=0;
-		lastPlace=System.currentTimeMillis();
+		setupPlace=System.currentTimeMillis();
 
 	}
 	//called if this is the first Bastion block created to set up the static variables
@@ -323,7 +330,7 @@ public class BastionBlock implements QTBox, Comparable<BastionBlock>
 	}
 
 	//Take care of a block that should be removed from inside the field
-	public void handlePlaced(Block block,boolean handleRemoval) {
+	public void handlePlaced(Block block,boolean handleRemoval,String thePlayer) {
 		if(handleRemoval)
 			block.breakNaturally();
 		
@@ -331,6 +338,17 @@ public class BastionBlock implements QTBox, Comparable<BastionBlock>
 		if(reinforcement instanceof PlayerReinforcement){
 			reinforcement.setDurability(0);
 			Citadel.getReinforcementManager().addReinforcement(reinforcement);
+		}
+		for (BastionPlaces bp : myPlaces)
+		{
+		   if (bp.player==thePlayer){
+			currentPlace=bp;
+			break;
+		   }
+		}
+		if (currentPlace==null||currentPlace.player!=thePlayer){
+			currentPlace=new BastionPlaces(thePlayer,setupTime);
+			myPlaces.add(currentPlace)
 		}
 		erode(erosionFromPlace());
 	}
@@ -360,7 +378,7 @@ public class BastionBlock implements QTBox, Comparable<BastionBlock>
 		int wholeToRemove=(int) toBeRemoved;
 		double fractionToRemove=(double) toBeRemoved-wholeToRemove;
 
-		if((time-lastPlace)>=min_break_time){ //not still locked after last erosion
+		if((time-currentPlace.lastPlace)>=min_break_time){ //not still locked after last erosion
 			IReinforcement reinforcement =  getReinforcement();
 
 			if (reinforcement != null) {
@@ -375,7 +393,7 @@ public class BastionBlock implements QTBox, Comparable<BastionBlock>
 
 			reinforcement.setDurability(strength);
 			Citadel.getReinforcementManager().addReinforcement(reinforcement);
-			lastPlace=time;
+			currentPlace.lastPlace=time;
 
 		}
 		set.updated(this);
