@@ -38,6 +38,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.Dispenser;
 
 import com.untamedears.citadel.Citadel;
+import com.untamedears.citadel.entity.Faction;
 import com.untamedears.citadel.entity.PlayerReinforcement;
 
 
@@ -295,12 +296,34 @@ public class BastionBlockManager
 		if(blocking.size() != 0)
 			event.setCancelled(true);
 	}
+	
 	public void handlePistonPush(BlockPistonExtendEvent event) {
 		Set<BastionBlock> blocking = shouldStopBlock(null,new HashSet<Block>(event.getBlocks()), null);
+		BlockFace direction=event.getDirection();
+		Block pistonBlock=event.getBlock(); //Get the block representing the piston
+
+		Block pistonArm=pistonBlock.getRelative(direction);
+
+		PlayerReinforcement pistonReinforcement = (PlayerReinforcement) Citadel.getReinforcementManager().
+				getReinforcement(pistonBlock);
+
+		Faction pistonGroup=null;
+		String foundersName=null;
+
+		if(pistonReinforcement instanceof PlayerReinforcement){ //get the owner of the piston's name if we can
+			pistonGroup=pistonReinforcement.getOwner();
+			foundersName=pistonGroup.getFounder();
+		}
+
+		Set<Block> blocks = new HashSet<Block>();
+		blocks.add(pistonArm);
+		blocks.addAll(event.getBlocks());
 		
-		if(blocking.size() != 0)
+		if(shouldStopBlock(null, blocks, foundersName).size() > 0){
 			event.setCancelled(true);
+		}
 	}
+	
 	public void handleBucketPlace(PlayerBucketEmptyEvent event) {
 		Set<Block> blocks = new HashSet<Block>();
 		blocks.add(event.getBlockClicked().getRelative(event.getBlockFace()));
