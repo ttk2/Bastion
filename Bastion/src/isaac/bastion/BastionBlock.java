@@ -360,7 +360,7 @@ public class BastionBlock implements QTBox, Comparable<BastionBlock>
 		SimpleDateFormat dateFormator = new SimpleDateFormat("M/d/yy H:m:s");
 		String result="Dev text: ";
 
-		PlayerReinforcement reinforcement = getReinforcement();
+		PlayerReinforcement reinforcement = (PlayerReinforcement) Citadel.getReinforcementManager().getReinforcement(location.getBlock()); //using this rather than the prebuilt function means we don't do any tests
 
 		double scaleTime_as_hours=0;
 		if(SCALING_TIME==0){
@@ -372,16 +372,16 @@ public class BastionBlock implements QTBox, Comparable<BastionBlock>
 			strength=reinforcement.getDurability();
 
 			result+="Current Bastion reinforcement: "+String.valueOf((double) strength-balance)+'\n';
-
-			result+="Maturity time is ";
-			result+=String.valueOf(scaleTime_as_hours)+'\n';
-
-			result+="Which means  " + String.valueOf(erosionFromBlock()) + " will removed after every blocked placeemnt"+'\n';
-
-			result+="Placed on "+dateFormator.format(new Date(placed))+'\n';
-			result+="by group "+reinforcement.getOwner().getName() + '\n';
-			result+="At: "+location.toString();
 		}
+		result+="Maturity time is ";
+		result+=String.valueOf(scaleTime_as_hours)+'\n';
+
+		result+="Which means  " + String.valueOf(erosionFromBlock()) + " will removed after every blocked placeemnt"+'\n';
+		result+="Placed on "+dateFormator.format(new Date(placed))+'\n';
+		if (reinforcement instanceof PlayerReinforcement) {
+			result+="by group "+reinforcement.getOwner().getName() + '\n';
+		}
+		result+="At: "+location.toString();
 
 
 
@@ -471,5 +471,6 @@ public class BastionBlock implements QTBox, Comparable<BastionBlock>
 		Bastion.getPlugin().getLogger().info("Removed bastion "+id);
 		Bastion.getPlugin().getLogger().info("Had been placed on "+placed);
 		Bastion.getPlugin().getLogger().info("At "+location);
+		Bastion.getPlugin().getLogger().info(toString());
 	}
 }
